@@ -1,65 +1,96 @@
-import { serve } from "bun";
+import { appendFileSync } from 'fs';
 
-const logRequest = async (url, method) => {
-    const logEntry = `${new Date().toISOString()} - ${method} - ${url}\n`;
-    try {
-        await Bun.write("log.txt", logEntry, { append: true });
-    } catch (err) {
-        console.error("Failed to write to log file:", err);
-    }
+const logRequest = (method, url) => {
+  const logData = `[${new Date().toISOString()}] ${method} ${url}\n`;
+  appendFileSync('log.txt', logData);
 };
 
-const server = serve({
-    port: 8050,
-    fetch(req) {
-        const method = req.method;
-        const url = new URL(req.url).pathname;
+Bun.serve({
+  fetch(req) {
+    const url = new URL(req.url);
+    const path = url.pathname;
+    const method = req.method;
 
-        let response = "";
-        let status = 200;
+    logRequest(method, path);
 
-        switch (url) {
-            case "/":
-                response = "Welcome to BarterX";
-                break;
-            case "/products":
-                response = "Here are the products up for Sale in BarterX";
-                break;
-            case "/login":
-                response = "Login to the BarterX";
-                break;
-            case "/signup":
-                response = "Sign up to the BarterX";
-                break;
-            case "/profile":
-                response = "Trader Profile";
-                break;
-            case "/cart":
-                response = "Your Shopping Cart is here";
-                break;
-            case "/checkout":
-                response = "Let's start shipping";
-                break;
-            case "/orders":
-                response = "Your Orders are here";
-                break;
-            case "/categories":
-                response = "Browse Categories";
-                break;
-            case "/contact":
-                response = "Contact Us at";
-                break;
-            case "/about":
-                response = "The modern approach to trading our commodities";
-                break;
-            default:
-                response = "404 Not Found!!";
-                status = 404;
-        }
-
-        logRequest(url, method);
-        return new Response(response, { status, headers: { "Content-Type": "text/plain" } });
-    },
+    switch (path) {
+      case '/':
+        return new Response('Welcome to the BarterX');
+      
+      case '/products':
+        return new Response('Here are the products up for Sale in BarterX');
+      
+      case '/login':
+        return new Response('Login to the BarterX');
+      
+      case '/signup':
+        return new Response('Sign up to the BarterX');
+      
+      case '/profile':
+        return new Response('Trader Profile');
+      
+      case '/cart':
+        return new Response('Your Shopping Cart is here');
+      
+      case '/checkout':
+        return new Response("Let's start shipping");
+      
+      case '/orders':
+        return new Response('Your Orders are here');
+      
+      case '/categories':
+        return new Response('Browse Categories');
+      
+      case '/chat':
+        return new Response('Your Chat with fellow Traders');
+      
+      case '/contact':
+        return new Response('Contact Us at');
+      
+      case '/about':
+        return new Response(
+          `<!DOCTYPE html>
+          <html>
+          <head>
+              <title>About BarterX</title>
+              <link rel="stylesheet" href="/styles.css">
+          </head>
+          <body>
+              <h1>About BarterX</h1>
+              <p>The modern approach to trading our commodities.</p>
+              <img src="/logo.png" alt="BarterX Logo">
+          </body>
+          </html>`,
+          { headers: { 'Content-Type': 'text/html' } }
+        );
+      
+      case '/api/products':
+        return new Response(
+          JSON.stringify([
+            { id: 1, name: 'Used Laptop', price: 300 },
+            { id: 2, name: 'Second-hand Bicycle', price: 50 },
+          ]),
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+      
+      case '/logo.png':
+        return new Response(Bun.file('./public/logo.png'), {
+          headers: { 'Content-Type': 'image/png' },
+        });
+      
+      case '/styles.css':
+        return new Response(Bun.file('./public/styles.css'), {
+          headers: { 'Content-Type': 'text/css' },
+        });
+      
+      default:
+        return new Response(
+          JSON.stringify({ error: 'Page not found', statusCode: 404 }),
+          { status: 404, headers: { 'Content-Type': 'application/json' } }
+        );
+    }
+  },
+  port: 8050,
+}, () => {
+  console.log('Server initiated on port 8050...');
 });
-
-console.log(`Server is listening on http://localhost:${server.port}`);
